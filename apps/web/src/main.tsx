@@ -47,9 +47,10 @@ function App(): React.JSX.Element {
       .catch(() => undefined);
   }, [authenticated]);
 
-  function handleAuthenticated(): void {
+  function handleAuthenticated(authenticatedRole: Role): void {
     localStorage.setItem('micro-saas-auth', 'true');
-    localStorage.setItem('micro-saas-role', 'OWNER');
+    localStorage.setItem('micro-saas-role', authenticatedRole);
+    setRole(authenticatedRole);
     setAuthenticated(true);
     window.history.pushState({}, '', '/dashboard');
   }

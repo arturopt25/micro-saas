@@ -5,6 +5,11 @@ import { prisma } from '@repo/db';
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
   emailAndPassword: { enabled: true },
+  user: {
+    additionalFields: {
+      accountType: { type: 'string', required: false, defaultValue: 'TENANT', input: true },
+    },
+  },
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID ?? '',
@@ -19,13 +24,15 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          await prisma.workspace.create({
-            data: {
-              name: `${user.name}'s workspace`,
-              slug: `${user.id}-workspace`,
-              memberships: { create: { userId: user.id, role: 'OWNER' } },
-            },
-          });
+          if (user.accountType === 'OWNER') {
+            await prisma.workspace.create({
+              data: {
+                name: `${user.name}'s workspace`,
+                slug: `${user.id}-workspace`,
+                memberships: { create: { userId: user.id, role: 'OWNER' } },
+              },
+            });
+          }
           await prisma.userPreference.create({ data: { userId: user.id } });
         },
       },

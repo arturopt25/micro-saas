@@ -1,12 +1,23 @@
 import { useState } from 'react';
-import { Button, Card, PasswordInput, Stack, TextInput, Title, Anchor, Text } from '@mantine/core';
+import {
+  Button,
+  Card,
+  PasswordInput,
+  Stack,
+  TextInput,
+  Title,
+  Anchor,
+  Text,
+  Select,
+} from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { apiRequest } from '../../lib/api-client';
+import type { Role } from '@repo/shared-types';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
-  onAuthenticated: () => void;
+  onAuthenticated: (role: Role) => void;
 }
 
 export function AuthPage({ mode, onAuthenticated }: AuthPageProps): React.JSX.Element {
@@ -14,6 +25,7 @@ export function AuthPage({ mode, onAuthenticated }: AuthPageProps): React.JSX.El
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [accountType, setAccountType] = useState<Role>('TENANT');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isRegister = mode === 'register';
@@ -28,9 +40,11 @@ export function AuthPage({ mode, onAuthenticated }: AuthPageProps): React.JSX.El
     try {
       await apiRequest(`/api/auth/${isRegister ? 'sign-up/email' : 'sign-in/email'}`, {
         method: 'POST',
-        body: JSON.stringify(isRegister ? { name, email, password } : { email, password }),
+        body: JSON.stringify(
+          isRegister ? { name, email, password, accountType } : { email, password },
+        ),
       });
-      onAuthenticated();
+      onAuthenticated(isRegister ? accountType : 'OWNER');
     } catch {
       setError(t('auth.invalid'));
       notifications.show({ color: 'red', message: t('auth.invalid') });
@@ -48,6 +62,18 @@ export function AuthPage({ mode, onAuthenticated }: AuthPageProps): React.JSX.El
             label={t('auth.name')}
             value={name}
             onChange={(event) => setName(event.currentTarget.value)}
+            required
+          />
+        )}
+        {isRegister && (
+          <Select
+            label={t('auth.accountType')}
+            value={accountType}
+            onChange={(value) => setAccountType(value === 'OWNER' ? 'OWNER' : 'TENANT')}
+            data={[
+              { value: 'OWNER', label: t('auth.owner') },
+              { value: 'TENANT', label: t('auth.tenant') },
+            ]}
             required
           />
         )}
