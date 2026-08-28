@@ -1,0 +1,41 @@
+{
+  "common": {
+    "appName": "Micro SaaS",
+    "save": "Save",
+    "loading": "Loading...",
+    "logout": "Log out"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "name": "Full name",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "invalid": "Invalid credentials",
+    "passwordTooShort": "Password must be at least 8 characters"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "ownerWelcome": "Workspace overview",
+    "tenantWelcome": "Your personal overview",
+    "ownerRole": "Owner",
+    "tenantRole": "Tenant",
+    "members": "Members",
+    "activity": "Recent activity",
+    "tasks": "Open tasks",
+    "reports": "Reports"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "security": "Security",
+    "changePassword": "Change password",
+    "newPassword": "New password",
+    "preferencesSaved": "Preferences saved"
+  }
+}

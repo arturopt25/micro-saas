@@ -11,7 +11,98 @@ model User {
   id        String   @id
   name      String
   email     String   @unique
+  emailVerified Boolean @default(false)
   image     String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions Session[]
+  accounts Account[]
+  memberships WorkspaceMembership[]
+  preferences UserPreference?
+}
+
+model Session {
+  id String @id
+  expiresAt DateTime
+  token String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id String @id
+  accountId String
+  providerId String
+  issuer String?
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([providerId, accountId])
+}
+
+model Verification {
+  id String @id
+  identifier String
+  value String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([identifier, value])
+}
+
+model Workspace {
+  id String @id @default(cuid())
+  name String
+  slug String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  memberships WorkspaceMembership[]
+}
+
+enum WorkspaceRole {
+  OWNER
+  TENANT
+}
+
+model WorkspaceMembership {
+  id String @id @default(cuid())
+  workspaceId String
+  userId String
+  role WorkspaceRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+enum Locale {
+  en
+  es
+}
+
+enum Theme {
+  light
+  dark
+}
+
+model UserPreference {
+  userId String @id
+  locale Locale @default(en)
+  theme Theme @default(dark)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   updatedAt DateTime @updatedAt
 }
