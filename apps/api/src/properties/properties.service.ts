@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { prisma } from '@repo/db';
+import type { Prisma } from '@repo/db';
 import type { PaginationInput } from '@repo/shared-types';
 
 interface CreateBuildingInput {
@@ -62,7 +63,7 @@ export class PropertiesService {
     workspaceId: string | null,
     input: BulkBuildingInput,
   ): Promise<unknown> {
-    return prisma.$transaction(async (transaction) => {
+    return prisma.$transaction(async (transaction: Prisma.TransactionClient) => {
       const building = await transaction.building.create({
         data: {
           name: input.name,
@@ -97,7 +98,7 @@ export class PropertiesService {
     workspaceId: string | null,
     input: BulkResidenceInput,
   ): Promise<unknown> {
-    return prisma.$transaction(async (transaction) => {
+    return prisma.$transaction(async (transaction: Prisma.TransactionClient) => {
       const residence = await transaction.residence.create({
         data: {
           name: input.name,

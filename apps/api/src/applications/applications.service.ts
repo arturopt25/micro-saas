@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { prisma } from '@repo/db';
+import type { Prisma } from '@repo/db';
 import type { PaginationInput } from '@repo/shared-types';
 
 interface ApplicationInput {
@@ -115,7 +116,7 @@ export class ApplicationsService {
           reviewedAt: new Date(),
         },
       });
-    return prisma.$transaction(async (transaction) => {
+    return prisma.$transaction(async (transaction: Prisma.TransactionClient) => {
       if (application.apartmentId)
         await transaction.apartment.update({
           where: { id: application.apartmentId },
