@@ -29,6 +29,27 @@ interface CreateUnitInput {
   parkingSpaces?: number | undefined;
   description?: string | undefined;
 }
+interface BulkDefaults {
+  sizeSquareMeters: number;
+  bedrooms: number;
+  bathrooms: number;
+  parkingSpaces?: number | undefined;
+}
+interface BulkBuildingInput {
+  name: string;
+  address: string;
+  description?: string | undefined;
+  numberOfFloors: number;
+  apartmentsPerFloor: number;
+  defaults: BulkDefaults;
+}
+interface BulkResidenceInput {
+  name: string;
+  address: string;
+  description?: string | undefined;
+  numberOfHouses: number;
+  defaults: BulkDefaults;
+}
 
 function requireWorkspace(workspaceId: string | null): string {
   if (!workspaceId) throw new ForbiddenException('WORKSPACE_MEMBERSHIP_REQUIRED');
@@ -37,6 +58,68 @@ function requireWorkspace(workspaceId: string | null): string {
 
 @Injectable()
 export class PropertiesService {
+  async createBuildingWithApartments(
+    workspaceId: string | null,
+    input: BulkBuildingInput,
+  ): Promise<unknown> {
+    return prisma.$transaction(async (transaction) => {
+      const building = await transaction.building.create({
+        data: {
+          name: input.name,
+          address: input.address,
+          description: input.description ?? null,
+          numberOfFloors: input.numberOfFloors,
+          workspaceId: requireWorkspace(workspaceId),
+        },
+      });
+      const apartments = Array.from(
+        { length: input.numberOfFloors * input.apartmentsPerFloor },
+        (_, index) => {
+          const floor = Math.floor(index / input.apartmentsPerFloor) + 1;
+          const letter = String.fromCharCode(65 + (index % input.apartmentsPerFloor));
+          return {
+            buildingId: building.id,
+            code: `${floor}${letter}`,
+            floor,
+            sizeSquareMeters: input.defaults.sizeSquareMeters,
+            bedrooms: input.defaults.bedrooms,
+            bathrooms: input.defaults.bathrooms,
+            parkingSpaces: input.defaults.parkingSpaces ?? 0,
+          };
+        },
+      );
+      await transaction.apartment.createMany({ data: apartments });
+      return building;
+    });
+  }
+
+  async createResidenceWithHouses(
+    workspaceId: string | null,
+    input: BulkResidenceInput,
+  ): Promise<unknown> {
+    return prisma.$transaction(async (transaction) => {
+      const residence = await transaction.residence.create({
+        data: {
+          name: input.name,
+          address: input.address,
+          description: input.description ?? null,
+          numberOfHouses: input.numberOfHouses,
+          workspaceId: requireWorkspace(workspaceId),
+        },
+      });
+      const houses = Array.from({ length: input.numberOfHouses }, (_, index) => ({
+        residenceId: residence.id,
+        code: String(index + 1),
+        sizeSquareMeters: input.defaults.sizeSquareMeters,
+        bedrooms: input.defaults.bedrooms,
+        bathrooms: input.defaults.bathrooms,
+        parkingSpaces: input.defaults.parkingSpaces ?? 0,
+      }));
+      await transaction.house.createMany({ data: houses });
+      return residence;
+    });
+  }
+
   async listProperties(
     workspaceId: string | null,
     pagination: PaginationInput,
@@ -135,16 +218,25 @@ export class PropertiesService {
     });
   }
 
-  async listAvailableUnits(pagination: PaginationInput): Promise<unknown> {
+  async listAvailableUnits(
+    pagination: PaginationInput,
+    propertyId?: string | undefined,
+  ): Promise<unknown> {
+    const apartmentWhere = propertyId
+      ? { status: 'AVAILABLE' as const, buildingId: propertyId }
+      : { status: 'AVAILABLE' as const };
+    const houseWhere = propertyId
+      ? { status: 'AVAILABLE' as const, residenceId: propertyId }
+      : { status: 'AVAILABLE' as const };
     const [apartments, houses] = await Promise.all([
       prisma.apartment.findMany({
-        where: { status: 'AVAILABLE' },
+        where: apartmentWhere,
         take: pagination.limit,
         orderBy: { createdAt: 'desc' },
         include: { building: true },
       }),
       prisma.house.findMany({
-        where: { status: 'AVAILABLE' },
+        where: houseWhere,
         take: pagination.limit,
         orderBy: { createdAt: 'desc' },
         include: { residence: true },

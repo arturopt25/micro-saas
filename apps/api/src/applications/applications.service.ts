@@ -60,13 +60,36 @@ export class ApplicationsService {
     });
   }
 
-  async listForOwner(workspaceId: string | null, pagination: PaginationInput): Promise<unknown> {
+  async listForOwner(
+    workspaceId: string | null,
+    pagination: PaginationInput,
+    status?: string | undefined,
+  ): Promise<unknown> {
     if (!workspaceId) throw new ForbiddenException('WORKSPACE_MEMBERSHIP_REQUIRED');
+    const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const;
+    type ApplicationStatusType = (typeof validStatuses)[number];
+    const statusFilter =
+      status && validStatuses.includes(status as ApplicationStatusType)
+        ? (status as ApplicationStatusType)
+        : undefined;
+    const where = {
+      workspaceId,
+      ...(statusFilter ? { status: statusFilter } : {}),
+    };
     return prisma.application.findMany({
-      where: { workspaceId },
+      where,
       take: pagination.limit,
       orderBy: { createdAt: 'desc' },
-      include: { applicant: true, apartment: true, house: true },
+      include: { applicant: true, apartment: { include: { building: true } }, house: { include: { residence: true } } },
+    });
+  }
+
+  async listTenants(workspaceId: string | null): Promise<unknown> {
+    if (!workspaceId) throw new ForbiddenException('WORKSPACE_MEMBERSHIP_REQUIRED');
+    return prisma.workspaceMembership.findMany({
+      where: { workspaceId, role: 'TENANT' },
+      include: { user: true, workspace: true },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
