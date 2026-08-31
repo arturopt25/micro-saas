@@ -27,7 +27,15 @@ export class ApplicationsController {
     @Req() request: Request,
     @Query() query: Record<string, unknown>,
   ) {
-    return this.service.listForOwner(request.user.workspaceId, paginationSchema.parse(query));
+    const { status, ...rest } = query as { status?: string };
+    return this.service.listForOwner(
+      request.user.workspaceId,
+      paginationSchema.parse(rest),
+      status,
+    );
+  }
+  @Get('owner/tenants') listTenants(@Req() request: Request) {
+    return this.service.listTenants(request.user.workspaceId);
   }
   @Patch('owner/applications/:id/approve') approve(
     @Req() request: Request,

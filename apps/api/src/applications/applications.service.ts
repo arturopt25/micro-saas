@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { prisma } from '@repo/db';
+import type { Prisma } from '@repo/db';
 import type { PaginationInput } from '@repo/shared-types';
 
 interface ApplicationInput {
@@ -60,13 +61,36 @@ export class ApplicationsService {
     });
   }
 
-  async listForOwner(workspaceId: string | null, pagination: PaginationInput): Promise<unknown> {
+  async listForOwner(
+    workspaceId: string | null,
+    pagination: PaginationInput,
+    status?: string | undefined,
+  ): Promise<unknown> {
     if (!workspaceId) throw new ForbiddenException('WORKSPACE_MEMBERSHIP_REQUIRED');
+    const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const;
+    type ApplicationStatusType = (typeof validStatuses)[number];
+    const statusFilter =
+      status && validStatuses.includes(status as ApplicationStatusType)
+        ? (status as ApplicationStatusType)
+        : undefined;
+    const where = {
+      workspaceId,
+      ...(statusFilter ? { status: statusFilter } : {}),
+    };
     return prisma.application.findMany({
-      where: { workspaceId },
+      where,
       take: pagination.limit,
       orderBy: { createdAt: 'desc' },
-      include: { applicant: true, apartment: true, house: true },
+      include: { applicant: true, apartment: { include: { building: true } }, house: { include: { residence: true } } },
+    });
+  }
+
+  async listTenants(workspaceId: string | null): Promise<unknown> {
+    if (!workspaceId) throw new ForbiddenException('WORKSPACE_MEMBERSHIP_REQUIRED');
+    return prisma.workspaceMembership.findMany({
+      where: { workspaceId, role: 'TENANT' },
+      include: { user: true, workspace: true },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -92,7 +116,7 @@ export class ApplicationsService {
           reviewedAt: new Date(),
         },
       });
-    return prisma.$transaction(async (transaction) => {
+    return prisma.$transaction(async (transaction: Prisma.TransactionClient) => {
       if (application.apartmentId)
         await transaction.apartment.update({
           where: { id: application.apartmentId },

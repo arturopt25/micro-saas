@@ -13,7 +13,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { apiRequest } from '../../lib/api-client';
-import type { Role } from '@repo/shared-types';
+import type { Role, SessionUser } from '@repo/shared-types';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
@@ -44,7 +44,12 @@ export function AuthPage({ mode, onAuthenticated }: AuthPageProps): React.JSX.El
           isRegister ? { name, email, password, accountType } : { email, password },
         ),
       });
-      onAuthenticated(isRegister ? accountType : 'OWNER');
+      if (isRegister) {
+        onAuthenticated(accountType);
+      } else {
+        const user = await apiRequest<SessionUser>('/users/me');
+        onAuthenticated(user.role);
+      }
     } catch {
       setError(t('auth.invalid'));
       notifications.show({ color: 'red', message: t('auth.invalid') });
