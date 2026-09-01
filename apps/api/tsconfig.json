@@ -9,7 +9,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
-    "declaration": true,
+    "declaration": false,
     "incremental": true
   },
   "include": ["src"]

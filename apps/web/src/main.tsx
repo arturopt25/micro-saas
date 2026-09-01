@@ -47,9 +47,10 @@ function App(): React.JSX.Element {
       .catch(() => undefined);
   }, [authenticated]);
 
-  function handleAuthenticated(): void {
+  function handleAuthenticated(authenticatedRole: Role): void {
     localStorage.setItem('micro-saas-auth', 'true');
-    localStorage.setItem('micro-saas-role', 'OWNER');
+    localStorage.setItem('micro-saas-role', authenticatedRole);
+    setRole(authenticatedRole);
     setAuthenticated(true);
     window.history.pushState({}, '', '/dashboard');
   }
@@ -90,23 +91,28 @@ function App(): React.JSX.Element {
           </Group>
         </AppShell.Header>
         <AppShell.Navbar p="md">
-          <Stack>
-            <NavLink
-              component="a"
-              href="/dashboard"
-              label={t('dashboard.title')}
-              onClick={close}
-              active={path === '/dashboard' || path === '/'}
-            />
-            <NavLink
-              component="a"
-              href="/settings"
-              label={t('settings.title')}
-              onClick={close}
-              active={path === '/settings'}
-            />
+          <Stack h="100%" justify="space-between">
+            <Stack>
+              <NavLink
+                component="a"
+                href="/dashboard"
+                label={t('dashboard.title')}
+                onClick={close}
+                active={path === '/dashboard' || path === '/'}
+              />
+              <NavLink
+                component="a"
+                href="/settings"
+                label={t('settings.title')}
+                onClick={close}
+                active={path === '/settings'}
+              />
+            </Stack>
             <Button
-              variant="subtle"
+              bg="blue"
+              color="white"
+              radius="md"
+              m="xs"
               onClick={() => {
                 localStorage.removeItem('micro-saas-auth');
                 setAuthenticated(false);

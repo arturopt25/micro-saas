@@ -13,12 +13,24 @@ model User {
   email     String   @unique
   emailVerified Boolean @default(false)
   image     String?
+  accountType AccountType @default(TENANT)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sessions Session[]
   accounts Account[]
   memberships WorkspaceMembership[]
   preferences UserPreference?
+  applications Application[]
+  occupancies Occupancy[]
+  payments Payment[]
+  fines Fine[]
+  parkingAccess ParkingAccess[]
+  maintenanceRequests MaintenanceRequest[]
+}
+
+enum AccountType {
+  OWNER
+  TENANT
 }
 
 model Session {
@@ -69,6 +81,14 @@ model Workspace {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   memberships WorkspaceMembership[]
+  buildings Building[]
+  residences Residence[]
+  applications Application[]
+  occupancies Occupancy[]
+  payments Payment[]
+  fines Fine[]
+  parkingAccess ParkingAccess[]
+  maintenanceRequests MaintenanceRequest[]
 }
 
 enum WorkspaceRole {
@@ -105,4 +125,257 @@ model UserPreference {
   theme Theme @default(dark)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   updatedAt DateTime @updatedAt
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UnitStatus {
+  AVAILABLE
+  PENDING
+  OCCUPIED
+  MAINTENANCE
+  INACTIVE
+}
+
+model Building {
+  id String @id @default(cuid())
+  workspaceId String
+  name String
+  address String
+  description String?
+  numberOfFloors Int
+  status PropertyStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  apartments Apartment[]
+  @@index([workspaceId, status])
+}
+
+model Residence {
+  id String @id @default(cuid())
+  workspaceId String
+  name String
+  address String
+  description String?
+  numberOfHouses Int
+  status PropertyStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  houses House[]
+  @@index([workspaceId, status])
+}
+
+model Apartment {
+  id String @id @default(cuid())
+  buildingId String
+  code String
+  floor Int
+  sizeSquareMeters Decimal @db.Decimal(10, 2)
+  bedrooms Int
+  bathrooms Int
+  parkingSpaces Int @default(0)
+  description String?
+  status UnitStatus @default(AVAILABLE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  applications Application[]
+  occupancy Occupancy?
+  payments Payment[]
+  fines Fine[]
+  parkingAccess ParkingAccess[]
+  maintenanceRequests MaintenanceRequest[]
+  @@unique([buildingId, code])
+  @@index([buildingId, status])
+}
+
+model House {
+  id String @id @default(cuid())
+  residenceId String
+  code String
+  lotNumber String?
+  sizeSquareMeters Decimal @db.Decimal(10, 2)
+  bedrooms Int
+  bathrooms Int
+  parkingSpaces Int @default(0)
+  description String?
+  status UnitStatus @default(AVAILABLE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  residence Residence @relation(fields: [residenceId], references: [id], onDelete: Cascade)
+  applications Application[]
+  occupancy Occupancy?
+  payments Payment[]
+  fines Fine[]
+  parkingAccess ParkingAccess[]
+  maintenanceRequests MaintenanceRequest[]
+  @@unique([residenceId, code])
+  @@index([residenceId, status])
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model Application {
+  id String @id @default(cuid())
+  workspaceId String
+  applicantId String
+  apartmentId String?
+  houseId String?
+  message String?
+  status ApplicationStatus @default(PENDING)
+  reviewedBy String?
+  reviewedAt DateTime?
+  rejectionReason String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  applicant User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  apartment Apartment? @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  house House? @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, status, createdAt])
+  @@index([applicantId, status])
+}
+
+enum OccupancyStatus {
+  ACTIVE
+  ENDED
+}
+
+model Occupancy {
+  id String @id @default(cuid())
+  workspaceId String
+  tenantUserId String
+  apartmentId String? @unique
+  houseId String? @unique
+  startedAt DateTime @default(now())
+  endedAt DateTime?
+  status OccupancyStatus @default(ACTIVE)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tenant User @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+  apartment Apartment? @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  house House? @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  @@index([tenantUserId, status])
+  @@index([workspaceId, status])
+}
+
+enum PaymentStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model Payment {
+  id String @id @default(cuid())
+  workspaceId String
+  tenantUserId String
+  apartmentId String?
+  houseId String?
+  amount Decimal @db.Decimal(12, 2)
+  currency String @default("USD")
+  reference String
+  bank String
+  status PaymentStatus @default(PENDING_REVIEW)
+  submittedAt DateTime @default(now())
+  reviewedAt DateTime?
+  reviewedBy String?
+  rejectionReason String?
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tenant User @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+  apartment Apartment? @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  house House? @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, status, submittedAt])
+  @@index([tenantUserId, submittedAt])
+}
+
+enum FineStatus {
+  OPEN
+  PAID
+  WAIVED
+}
+
+model Fine {
+  id String @id @default(cuid())
+  workspaceId String
+  tenantUserId String
+  apartmentId String?
+  houseId String?
+  amount Decimal @db.Decimal(12, 2)
+  reason String
+  status FineStatus @default(OPEN)
+  issuedAt DateTime @default(now())
+  paidAt DateTime?
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tenant User @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+  apartment Apartment? @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  house House? @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, status, issuedAt])
+}
+
+enum AccessStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model ParkingAccess {
+  id String @id @default(cuid())
+  workspaceId String
+  tenantUserId String
+  apartmentId String?
+  houseId String?
+  spaceCode String
+  vehiclePlate String?
+  status AccessStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tenant User @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+  apartment Apartment? @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  house House? @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, status])
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CANCELLED
+}
+
+model MaintenanceRequest {
+  id String @id @default(cuid())
+  workspaceId String
+  requesterId String
+  apartmentId String?
+  houseId String?
+  title String
+  description String
+  priority MaintenancePriority @default(MEDIUM)
+  status MaintenanceStatus @default(OPEN)
+  assignedTo String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  resolvedAt DateTime?
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  requester User @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  apartment Apartment? @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  house House? @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, status, createdAt])
+  @@index([requesterId, status])
 }

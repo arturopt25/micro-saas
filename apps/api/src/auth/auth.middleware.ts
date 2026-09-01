@@ -17,14 +17,24 @@ export class AuthMiddleware implements NestMiddleware {
       where: { userId: session.user.id },
       include: { workspace: true },
     });
-    if (!membership) {
+    const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+    if (!membership && user?.accountType !== 'TENANT') {
       response.status(403).json({ code: 'WORKSPACE_MEMBERSHIP_REQUIRED' });
+      return;
+    }
+    const role = membership?.role ?? 'TENANT';
+    if (request.path.startsWith('/owner') && role !== 'OWNER') {
+      response.status(403).json({ code: 'INSUFFICIENT_ROLE' });
+      return;
+    }
+    if (request.path.startsWith('/tenant') && role !== 'TENANT') {
+      response.status(403).json({ code: 'INSUFFICIENT_ROLE' });
       return;
     }
     request.user = {
       id: session.user.id,
-      role: membership.role,
-      workspaceId: membership.workspaceId,
+      role,
+      workspaceId: membership?.workspaceId ?? null,
     };
     next();
   }

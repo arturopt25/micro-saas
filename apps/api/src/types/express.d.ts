@@ -9,7 +9,7 @@ declare global {
     interface User {
       id: string;
       role: Role;
-      workspaceId: string;
+      workspaceId: string | null;
     }
   }
 }

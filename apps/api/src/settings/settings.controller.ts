@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Patch, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { SettingsService } from './settings.service';
@@ -11,7 +11,7 @@ type AuthenticatedRequest = Request & { user: { id: string; role: string; worksp
 
 @Controller('users/me/preferences')
 export class SettingsController {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(@Inject(SettingsService) private readonly settingsService: SettingsService) {}
 
   @Get()
   getPreferences(@Req() request: AuthenticatedRequest) {
