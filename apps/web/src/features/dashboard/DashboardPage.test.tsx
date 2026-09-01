@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { DashboardPage } from './DashboardPage';
 import '../i18n/config';
 
@@ -27,6 +27,11 @@ vi.mock('../../lib/api-client', () => ({
 
 describe('DashboardPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
     vi.clearAllMocks();
   });
 
