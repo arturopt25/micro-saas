@@ -183,17 +183,34 @@ pnpm format:check     # Verify Prettier formatting
 
 The same lint, typecheck, test, and build sequence runs in [`ci.yml`](.github/workflows/ci.yml) for pushes to `main` and pull requests.
 
-## Roadmap
+## Architecture Evolution
 
-- [ ] Complete the OpenAI agent runner with validated, auditable, tenant-scoped tools.
-- [ ] Persist agent runs and events and expose progress through Server-Sent Events.
-- [ ] Standardize frontend server-state caching and invalidation with TanStack Query.
-- [ ] Add Redis for caching, distributed rate limiting, and short-lived workflow state.
-- [ ] Introduce WebSockets for real-time operation and automation status updates.
-- [ ] Add background job processing for long-running workflows and notifications.
-- [ ] Expand CI/CD with deployment pipelines, preview environments, and release automation.
-- [ ] Add OpenTelemetry tracing, structured metrics, and centralized error monitoring.
-- [ ] Increase integration and end-to-end test coverage for tenant isolation and role boundaries.
+The current implementation establishes the core domain, authentication, tenant boundaries, and delivery workflow. The opportunities below describe how the platform could evolve as usage, data volume, and automation requirements increase. They are intentionally framed as architectural capabilities rather than a fixed feature checklist.
+
+### Scalability and Resilience
+
+- **Distributed caching and rate limiting:** Introduce Redis to reduce repeated catalog and dashboard queries, enforce tenant-aware rate limits, and coordinate short-lived workflow state across API instances.
+- **Asynchronous processing:** Add a durable job queue for long-running automations, notifications, report generation, and other work that should not block an HTTP request.
+
+### Real-Time and Event-Driven Workflows
+
+- **Live operation updates:** Extend the API with Server-Sent Events or WebSockets so users can track application reviews, maintenance status, and automation progress without polling.
+- **Domain events:** Publish explicit events for meaningful state transitions, creating a reliable integration point for notifications, audit trails, and future external services.
+
+### AI Orchestration and Governance
+
+- **Tenant-scoped agent runner:** Build a validated tool registry around the OpenAI integration, with authorization checks at execution time and strict workspace context propagation.
+- **Auditable automation:** Persist agent runs, tool calls, outcomes, and failures so automated decisions remain observable, reviewable, and safe to operate in a multi-tenant environment.
+
+### Delivery and Observability
+
+- **Production delivery pipeline:** Expand the existing CI quality gate into CI/CD with container publishing, deployment promotion, database migration controls, and preview environments for pull requests.
+- **Operational visibility:** Add OpenTelemetry traces, structured metrics, health checks, and centralized error monitoring across the web, API, database, and background workers.
+
+### Quality and Security
+
+- **Boundary-focused test coverage:** Add integration and end-to-end suites for workspace isolation, role authorization, migration safety, and critical owner and tenant workflows.
+- **Policy enforcement:** Centralize authorization policies and security controls as the number of roles, integrations, and automated tools grows.
 
 ## License
 
